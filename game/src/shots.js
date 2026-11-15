@@ -1,12 +1,14 @@
-// The screenshot scenes behind ?shot=start|play|power|end. Each one plays the real
-// rules forward from a fresh world for a fixed number of steps, steered by a simple
-// autopilot (predict where the lowest ball will cross the paddle line and move there),
-// so the frame is what a real game looks like and the same seed always gives the same
-// frame. The end scene plays well first, then stops moving the paddle, so it loses all
-// three lives for real.
+// The screenshot scenes behind ?shot=start|play|power|win|fortress. Each one plays
+// the real rules forward from a fresh world for a fixed number of steps, steered by
+// a simple autopilot (predict where the lowest ball will cross the paddle line and
+// move there), so the frame is what a real game looks like and the same seed always
+// gives the same frame. The win scene plays all six levels through to a real
+// victory. The fortress scene plays into level 5, so its steel bricks and ice-blue
+// theme are on screen. The end scene plays well first, then stops moving the paddle,
+// so it loses all three lives for real.
 
 import { FIELD, PADDLE, STEP } from './config.js';
-import { SCREEN_OVER, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
+import { SCREEN_OVER, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN } from './render.js';
 
 const START_SECONDS = 5;
 const PLAY_SECONDS = 45;
@@ -14,6 +16,8 @@ const POWER_SECONDS = 24;
 const END_PLAY_SECONDS = 20;
 const END_LIMIT_SECONDS = 300;
 const POWER_HOLD_SECONDS = 2;
+/** The win scene's step budget: a full clear takes about 15 sim-minutes. */
+const WIN_LIMIT_SECONDS = 1500;
 
 function pilotDirection(world) {
   const state = world.state;
@@ -61,6 +65,28 @@ export function stageShot(name, world) {
     world.burst(FIELD.width / 2 - 220, 260, '#22d3ee', 18, 280);
     stepPilot(world, POWER_HOLD_SECONDS, pilotDirection);
     return { screen: SCREEN_PLAY, best: world.state.score };
+  }
+  if (name === 'fortress') {
+    const limit = WIN_LIMIT_SECONDS / STEP;
+    for (let index = 0; index < limit; index += 1) {
+      if (world.state.serving) world.launch();
+      world.step(STEP, pilotDirection(world), false, null);
+      if (world.state.won || world.state.over) break;
+      if (world.state.level === 4 && world.state.clearing <= 0) break;
+    }
+    // A few seconds into FORTRESS: the ball is live, the steel bricks and the
+    // ice-blue theme are on screen, the intro banner has faded.
+    if (!world.state.won && !world.state.over) stepPilot(world, 4, pilotDirection);
+    return { screen: world.state.over ? SCREEN_OVER : SCREEN_PLAY, best: world.state.score };
+  }
+  if (name === 'win') {
+    const limit = WIN_LIMIT_SECONDS / STEP;
+    for (let index = 0; index < limit; index += 1) {
+      if (world.state.serving) world.launch();
+      world.step(STEP, pilotDirection(world), false, null);
+      if (world.state.won || world.state.over) break;
+    }
+    return { screen: world.state.won ? SCREEN_WIN : SCREEN_PLAY, best: world.state.score };
   }
   if (name === 'end') {
     stepPilot(world, END_PLAY_SECONDS, pilotDirection);

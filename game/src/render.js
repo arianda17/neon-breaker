@@ -2,7 +2,7 @@
 // and victory screens. The canvas is scaled from the fixed 1280x720 logical field to
 // whatever window it fills.
 
-import { FIELD, FONT, LEVELS, PALETTE, PADDLE, POWERUP } from './config.js';
+import { FIELD, FONT, LEVELS, PALETTE, PADDLE, POWERUP, STEEL } from './config.js';
 
 export const SCREEN_TITLE = 'title';
 export const SCREEN_PLAY = 'play';
@@ -50,6 +50,8 @@ function panel(ctx, x, y, w, h) {
 
 export function createRenderer(canvas) {
   const ctx = canvas.getContext('2d');
+  /** The palette actually painting this frame: the level theme over the base palette. */
+  let P = PALETTE;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -61,8 +63,8 @@ export function createRenderer(canvas) {
 
   function drawBackground(state) {
     const gradient = ctx.createLinearGradient(0, 0, 0, FIELD.height);
-    gradient.addColorStop(0, PALETTE.backdropTop);
-    gradient.addColorStop(1, PALETTE.backdrop);
+    gradient.addColorStop(0, P.backdropTop);
+    gradient.addColorStop(1, P.backdrop);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, FIELD.width, FIELD.height);
 
@@ -74,7 +76,7 @@ export function createRenderer(canvas) {
     }
     ctx.globalAlpha = 1;
 
-    ctx.strokeStyle = PALETTE.grid;
+    ctx.strokeStyle = P.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = 64; x < FIELD.width; x += 64) {
@@ -88,9 +90,9 @@ export function createRenderer(canvas) {
     ctx.stroke();
 
     ctx.save();
-    ctx.shadowColor = PALETTE.rail;
+    ctx.shadowColor = P.rail;
     ctx.shadowBlur = 18;
-    ctx.strokeStyle = PALETTE.rail;
+    ctx.strokeStyle = P.rail;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(6, 0);
@@ -104,6 +106,35 @@ export function createRenderer(canvas) {
   function drawBricks(state) {
     for (const brick of state.bricks) {
       if (!brick.alive) continue;
+      if (brick.steel) {
+        ctx.save();
+        ctx.shadowColor = STEEL.edge;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = STEEL.color;
+        rr(ctx, brick.x, brick.y, brick.w, brick.h, 6);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = STEEL.edge;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        rr(ctx, brick.x + 3, brick.y + 3, brick.w - 6, 9, 4);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(91,100,114,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(brick.x + 10, brick.y + brick.h - 8);
+        ctx.lineTo(brick.x + brick.w - 10, brick.y + 8);
+        ctx.stroke();
+        ctx.fillStyle = STEEL.rivet;
+        for (const [rx, ry] of [[10, 10], [brick.w - 10, 10], [10, brick.h - 10], [brick.w - 10, brick.h - 10]]) {
+          ctx.beginPath();
+          ctx.arc(brick.x + rx, brick.y + ry, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.shadowColor = brick.color;
       ctx.shadowBlur = 14;
@@ -154,17 +185,17 @@ export function createRenderer(canvas) {
   function drawPaddle(state) {
     const paddle = state.paddle;
     const gradient = ctx.createLinearGradient(paddle.x, 0, paddle.x + paddle.w, 0);
-    gradient.addColorStop(0, '#0e7490');
-    gradient.addColorStop(0.5, PALETTE.paddle);
-    gradient.addColorStop(1, '#0e7490');
+    gradient.addColorStop(0, P.paddleEdge);
+    gradient.addColorStop(0.5, P.paddle);
+    gradient.addColorStop(1, P.paddleEdge);
     ctx.save();
-    ctx.shadowColor = PALETTE.paddle;
+    ctx.shadowColor = P.paddle;
     ctx.shadowBlur = 20;
     ctx.fillStyle = gradient;
     rr(ctx, paddle.x, paddle.y, paddle.w, paddle.h, 9);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = PALETTE.paddleCore;
+    ctx.fillStyle = P.paddleCore;
     rr(ctx, paddle.x + 8, paddle.y + 4, paddle.w - 16, 4, 2);
     ctx.fill();
     ctx.restore();
@@ -175,14 +206,14 @@ export function createRenderer(canvas) {
       if (!ball.active) continue;
       ctx.save();
       ctx.globalAlpha = 0.25;
-      ctx.fillStyle = PALETTE.ballGlow;
+      ctx.fillStyle = P.ballGlow;
       ctx.beginPath();
       ctx.arc(ball.x - ball.vx * 0.03, ball.y - ball.vy * 0.03, ball.r * 1.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.shadowColor = PALETTE.ballGlow;
+      ctx.shadowColor = P.ballGlow;
       ctx.shadowBlur = 18;
-      ctx.fillStyle = PALETTE.ball;
+      ctx.fillStyle = P.ball;
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       ctx.fill();
@@ -213,31 +244,45 @@ export function createRenderer(canvas) {
     ctx.globalAlpha = 1;
   }
 
+  function drawBanner(state) {
+    const banner = state.banner;
+    if (!banner || banner.timer <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, banner.timer / 0.5);
+    glowText(ctx, banner.text, 640, 316, `900 64px ${FONT}`, P.gold, P.gold);
+    ctx.font = `600 30px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = P.text;
+    ctx.fillText(banner.name, 640, 372);
+    ctx.restore();
+  }
+
   function drawHud(state, best) {
     ctx.save();
     ctx.font = `bold 26px ${FONT}`;
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.textAlign = 'left';
     ctx.fillText('SCORE', 28, 30);
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText(String(state.score).padStart(6, '0'), 118, 30);
 
     const levelName = LEVELS[state.level] ? LEVELS[state.level].name : '';
     ctx.textAlign = 'center';
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.fillText('LEVEL', FIELD.width / 2 - 110, 30);
-    ctx.fillStyle = PALETTE.gold;
+    ctx.fillStyle = P.gold;
     ctx.fillText(`${state.level + 1}  ${levelName}`, FIELD.width / 2 + 30, 30);
 
     ctx.textAlign = 'right';
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.fillText('BEST', FIELD.width - 210, 30);
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText(String(Math.max(best, state.score)).padStart(6, '0'), FIELD.width - 28, 30);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.fillText('LIVES', 28, 66);
     for (let index = 0; index < 5; index += 1) {
       ctx.fillStyle = index < state.lives ? '#ff2fb3' : 'rgba(154,163,199,0.25)';
@@ -253,7 +298,7 @@ export function createRenderer(canvas) {
     }
 
     ctx.textAlign = 'right';
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.font = `15px ${FONT}`;
     if (state.paddle.wideTimer > 0) ctx.fillText(`WIDE ${Math.ceil(state.paddle.wideTimer)}s`, FIELD.width - 28, 62);
     if (state.slowTimer > 0) ctx.fillText(`SLOW ${Math.ceil(state.slowTimer)}s`, FIELD.width - 28, 82);
@@ -269,16 +314,16 @@ export function createRenderer(canvas) {
     glowText(ctx, 'BREAKER', 640, 296, `900 96px ${FONT}`, '#ff2fb3', '#ff2fb3');
     ctx.font = `600 24px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText('SMASH EVERY BRICK. CLEAR ALL 6 LEVELS.', 640, 378);
-    ctx.fillStyle = PALETTE.muted;
+    ctx.fillStyle = P.muted;
     ctx.font = `20px ${FONT}`;
     ctx.fillText('Move:  ← →  or  A / D  or mouse      Launch ball:  Space / click', 640, 428);
     ctx.fillText('Catch falling capsules for power-ups      Pause:  P / Esc', 640, 460);
     ctx.fillText('M multi-ball   •   W wide paddle   •   S slow ball   •   L extra life', 640, 492);
     glowText(ctx, 'PRESS SPACE OR CLICK TO START', 640, 552, `bold 26px ${FONT}`, '#ffd166', '#ffd166');
     if (best > 0) {
-      ctx.fillStyle = PALETTE.muted;
+      ctx.fillStyle = P.muted;
       ctx.font = `18px ${FONT}`;
       ctx.fillText(`BEST SCORE  ${best}`, 640, 586);
     }
@@ -292,7 +337,7 @@ export function createRenderer(canvas) {
     glowText(ctx, 'PAUSED', 640, 330, `900 72px ${FONT}`, '#22d3ee', '#22d3ee');
     ctx.font = `22px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText('Press P or Esc to resume', 640, 404);
     ctx.restore();
   }
@@ -305,10 +350,10 @@ export function createRenderer(canvas) {
     glowText(ctx, 'GAME OVER', 640, 248, `900 64px ${FONT}`, '#ff5c5c', '#ff5c5c');
     ctx.font = `26px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText(`FINAL SCORE   ${state.score}`, 640, 330);
     ctx.fillText(`LEVEL REACHED   ${state.level + 1} / ${LEVELS.length}`, 640, 372);
-    ctx.fillStyle = state.score >= best && state.score > 0 ? PALETTE.gold : PALETTE.muted;
+    ctx.fillStyle = state.score >= best && state.score > 0 ? P.gold : P.muted;
     ctx.fillText(state.score >= best && state.score > 0 ? '★ NEW BEST SCORE ★' : `BEST   ${best}`, 640, 414);
     glowText(ctx, 'PRESS R OR CLICK TO PLAY AGAIN', 640, 492, `bold 24px ${FONT}`, '#ffd166', '#ffd166');
     ctx.restore();
@@ -322,16 +367,17 @@ export function createRenderer(canvas) {
     glowText(ctx, 'YOU WIN!', 640, 228, `900 72px ${FONT}`, '#a3e635', '#a3e635');
     ctx.font = `26px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = PALETTE.text;
+    ctx.fillStyle = P.text;
     ctx.fillText('ALL 6 LEVELS CLEARED', 640, 300);
     ctx.fillText(`FINAL SCORE   ${state.score}`, 640, 346);
-    ctx.fillStyle = PALETTE.gold;
+    ctx.fillStyle = P.gold;
     ctx.fillText(`BEST   ${Math.max(best, state.score)}`, 640, 388);
     glowText(ctx, 'PRESS R OR CLICK TO PLAY AGAIN', 640, 502, `bold 24px ${FONT}`, '#ffd166', '#ffd166');
     ctx.restore();
   }
 
   function draw(state, screen, best) {
+    P = { ...PALETTE, ...((LEVELS[state.level] || {}).theme || {}) };
     const scale = Math.min(canvas.width / FIELD.width, canvas.height / FIELD.height);
     const offsetX = (canvas.width - FIELD.width * scale) / 2;
     const offsetY = (canvas.height - FIELD.height * scale) / 2;
@@ -351,6 +397,8 @@ export function createRenderer(canvas) {
     drawTexts(state);
     drawHud(state, best);
 
+    if (screen === SCREEN_PLAY) drawBanner(state);
+
     if (state.clearing > 0 && screen === SCREEN_PLAY) {
       glowText(ctx, 'LEVEL CLEAR!', 640, 330, `900 64px ${FONT}`, '#a3e635', '#a3e635');
       glowText(ctx, `BONUS +${500 + state.level * 250}`, 640, 396, `bold 30px ${FONT}`, '#ffd166', '#ffd166');
@@ -358,7 +406,7 @@ export function createRenderer(canvas) {
     if (state.serving && screen === SCREEN_PLAY) {
       ctx.font = `bold 22px ${FONT}`;
       ctx.textAlign = 'center';
-      ctx.fillStyle = PALETTE.text;
+      ctx.fillStyle = P.text;
       ctx.fillText('SPACE / CLICK TO LAUNCH', 640, 610);
     }
 

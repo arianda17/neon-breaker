@@ -6,7 +6,8 @@
 
 An original neon Breakout-style arcade game. Bounce the ball off your paddle,
 smash every brick, catch falling power-up capsules, and clear all 6 levels
-without losing your 3 lives.
+without losing your 3 lives. Steel bricks (levels 5-6) never break: bounce the
+ball around them. Each level has its own neon theme.
 
 ## How to play
 
@@ -37,9 +38,9 @@ assets: all art is drawn on canvas and all sounds are synthesised with WebAudio.
 
 ## Screenshots
 
-The four staged scenes (`?shot=start|play|power|end&seed=1`) are listed in
-`shots.json`. Every scene is deterministic: the same seed always stages the
-same frame.
+The four staged scenes (`?shot=start|fortress|power|win&seed=1`; `?shot=end` stages a
+loss instead) are listed in `shots.json`. Every scene is deterministic: the same
+seed always stages the same frame.
 
 ## Files
 

@@ -58,17 +58,33 @@ export const MAX_LIVES = 5;
 /** Seconds a level-clear banner holds the game before the next level builds. */
 export const CLEAR_HOLD = 1.6;
 
+/** Seconds the level-intro banner ("LEVEL 2 — CHECKERBOARD") stays on screen. */
+export const BANNER_SECONDS = 1.8;
+
+/** Steel bricks never break: they bounce the ball and shield what is behind them. */
+export const STEEL = { color: '#9aa3b2', edge: '#5b6472', rivet: '#e8ecf4' };
+
 /** Neon row colours, top row first. */
 export const ROW_COLORS = ['#ff2fb3', '#ff7a18', '#ffd166', '#a3e635', '#22d3ee', '#7c5cff', '#ff5c5c'];
 
 /**
  * Six levels. Each pattern is an array of rows, 10 characters wide:
- * '.' is empty, '1' a one-hit brick, '2' two hits, '3' three hits.
+ * '.' is empty, '1' a one-hit brick, '2' two hits, '3' three hits,
+ * 'S' a steel brick that never breaks. Steel never forms a full row, so
+ * every breakable brick stays reachable from the side once its neighbours
+ * fall. Each level has its own neon theme (backdrop, rails, paddle) and
+ * its own row colours, top row first.
  */
 export const LEVELS = [
   {
     name: 'FIRST LIGHT',
     speed: 440,
+    theme: {
+      backdrop: '#070312', backdropTop: '#12082e',
+      grid: 'rgba(124, 92, 255, 0.10)', rail: '#7c5cff',
+      paddle: '#22d3ee', paddleEdge: '#0e7490',
+    },
+    rows: ['#ff2fb3', '#ff7a18', '#ffd166', '#a3e635', '#22d3ee', '#7c5cff', '#ff5c5c'],
     pattern: [
       '1111111111',
       '1111111111',
@@ -79,6 +95,12 @@ export const LEVELS = [
   {
     name: 'CHECKERBOARD',
     speed: 470,
+    theme: {
+      backdrop: '#120309', backdropTop: '#2a0a20',
+      grid: 'rgba(255, 47, 179, 0.10)', rail: '#ff2fb3',
+      paddle: '#ffd166', paddleEdge: '#92600a',
+    },
+    rows: ['#ff2fb3', '#c084fc', '#f472b6', '#e879f9', '#a855f7', '#ff7a18', '#ffd166'],
     pattern: [
       '1212121212',
       '2121212121',
@@ -90,6 +112,12 @@ export const LEVELS = [
   {
     name: 'DIAMOND',
     speed: 500,
+    theme: {
+      backdrop: '#02120b', backdropTop: '#062a1a',
+      grid: 'rgba(52, 211, 153, 0.10)', rail: '#34d399',
+      paddle: '#a3e635', paddleEdge: '#4d7c0f',
+    },
+    rows: ['#34d399', '#2dd4bf', '#a3e635', '#4ade80', '#22d3ee', '#84cc16', '#facc15'],
     pattern: [
       '....11....',
       '...1111...',
@@ -102,6 +130,12 @@ export const LEVELS = [
   {
     name: 'PYRAMID',
     speed: 530,
+    theme: {
+      backdrop: '#120a02', backdropTop: '#2e1a06',
+      grid: 'rgba(255, 122, 24, 0.10)', rail: '#ff7a18',
+      paddle: '#ffd166', paddleEdge: '#92600a',
+    },
+    rows: ['#ff7a18', '#fb923c', '#facc15', '#f87171', '#ef4444', '#ffd166', '#ff2fb3'],
     pattern: [
       '....11....',
       '...1111...',
@@ -114,12 +148,18 @@ export const LEVELS = [
   {
     name: 'FORTRESS',
     speed: 560,
+    theme: {
+      backdrop: '#020a12', backdropTop: '#062032',
+      grid: 'rgba(56, 189, 248, 0.10)', rail: '#38bdf8',
+      paddle: '#7dd3fc', paddleEdge: '#075985',
+    },
+    rows: ['#38bdf8', '#60a5fa', '#818cf8', '#22d3ee', '#93c5fd', '#e0f2fe', '#7dd3fc'],
     pattern: [
       '2211111122',
       '2111111112',
-      '1112222111',
+      '11S222211S',
       '1112332111',
-      '1112222111',
+      '11S222211S',
       '2111111112',
       '2211111122',
     ],
@@ -127,12 +167,18 @@ export const LEVELS = [
   {
     name: 'NEON CORE',
     speed: 595,
+    theme: {
+      backdrop: '#0d0212', backdropTop: '#2a0636',
+      grid: 'rgba(192, 132, 252, 0.12)', rail: '#c084fc',
+      paddle: '#e879f9', paddleEdge: '#86198f',
+    },
+    rows: ['#c084fc', '#e879f9', '#ff2fb3', '#a855f7', '#f472b6', '#d8b4fe', '#ffd166'],
     pattern: [
       '2333333332',
       '3222222223',
-      '2211111122',
+      '22S1111S22',
       '2112332112',
-      '2211111122',
+      '22S1111S22',
       '3222222223',
       '2333333332',
     ],

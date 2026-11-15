@@ -4,7 +4,7 @@
 // generator the world was built with.
 
 import {
-  BALL, BRICK, CLEAR_HOLD, FIELD, LEVELS, LIVES, MAX_LIVES, PADDLE, POWERUP, ROW_COLORS,
+  BALL, BANNER_SECONDS, BRICK, CLEAR_HOLD, FIELD, LEVELS, LIVES, MAX_LIVES, PADDLE, POWERUP, ROW_COLORS, STEEL,
 } from './config.js';
 import { randomPick, randomRange } from './random.js';
 
@@ -60,6 +60,7 @@ export function createWorld(rng) {
     slowTimer: 0,
     serving: true,
     clearing: 0,
+    banner: null,
     won: false,
     over: false,
     frame: 0,
@@ -91,12 +92,28 @@ export function createWorld(rng) {
 
   function buildLevel(index) {
     const level = LEVELS[index];
+    const rows = level.rows || ROW_COLORS;
     const gridWidth = BRICK.cols * BRICK.width + (BRICK.cols - 1) * BRICK.gapX;
     const startX = (FIELD.width - gridWidth) / 2;
     state.bricks = [];
     level.pattern.forEach((row, rowIndex) => {
       for (let col = 0; col < row.length; col += 1) {
-        const hp = row.charCodeAt(col) - 48;
+        const cell = row.charAt(col);
+        if (cell === 'S') {
+          state.bricks.push({
+            x: startX + col * (BRICK.width + BRICK.gapX),
+            y: BRICK.topY + rowIndex * (BRICK.height + BRICK.gapY),
+            w: BRICK.width,
+            h: BRICK.height,
+            hp: 99,
+            maxHp: 0,
+            steel: true,
+            color: STEEL.color,
+            alive: true,
+          });
+          continue;
+        }
+        const hp = cell.charCodeAt(0) - 48;
         if (hp < 1 || hp > 3) continue;
         state.bricks.push({
           x: startX + col * (BRICK.width + BRICK.gapX),
@@ -105,12 +122,14 @@ export function createWorld(rng) {
           h: BRICK.height,
           hp,
           maxHp: hp,
-          color: ROW_COLORS[rowIndex % ROW_COLORS.length],
+          color: rows[rowIndex % rows.length],
           alive: true,
         });
       }
     });
-    state.bricksLeft = state.bricks.length;
+    // Steel never breaks, so it never counts toward clearing the level.
+    state.bricksLeft = state.bricks.filter((brick) => !brick.steel).length;
+    state.banner = { text: `LEVEL ${index + 1}`, name: level.name, timer: BANNER_SECONDS };
   }
 
   function burst(x, y, color, count, speed) {
@@ -143,6 +162,7 @@ export function createWorld(rng) {
     state.speedBonus = 0;
     state.slowTimer = 0;
     state.clearing = 0;
+    state.banner = null;
     state.won = false;
     state.over = false;
     state.frame = 0;
@@ -209,6 +229,11 @@ export function createWorld(rng) {
   }
 
   function damageBrick(brick, attract) {
+    if (brick.steel) {
+      // Steel never breaks and gives no points: just a spark and a clank.
+      burst(brick.x + brick.w / 2, brick.y + brick.h / 2, STEEL.color, 4, 160);
+      return EVENT_BRICK_HIT;
+    }
     brick.hp -= 1;
     if (brick.hp > 0) {
       burst(brick.x + brick.w / 2, brick.y + brick.h / 2, brick.color, 4, 160);
@@ -324,6 +349,7 @@ export function createWorld(rng) {
     let events = 0;
     state.frame += 1;
     state.shake = Math.max(0, state.shake - dt * 1.4);
+    if (state.banner && state.banner.timer > 0) state.banner.timer -= dt;
 
     for (let index = state.particles.length - 1; index >= 0; index -= 1) {
       const particle = state.particles[index];
