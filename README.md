@@ -7,7 +7,8 @@
 An original neon Breakout-style arcade game. Bounce the ball off your paddle,
 smash every brick, catch falling power-up capsules, and clear all 6 levels
 without losing your 3 lives. Steel bricks (levels 5-6) never break: bounce the
-ball around them. Each level has its own neon theme.
+ball around them. In NEON CORE, one row of bricks slides side to side.
+Each level has its own neon theme.
 
 ## How to play
 
@@ -23,6 +24,7 @@ your score. Broken bricks sometimes drop capsules:
 - **W** — wide paddle (12 s)
 - **S** — slow ball (9 s)
 - **L** — extra life
+- **F** — fireball (8 s): the ball pierces straight through bricks
 
 Each level is faster and its brick pattern is tougher. Clear all 6 to win.
 Your best score is kept in the browser.
@@ -39,8 +41,9 @@ assets: all art is drawn on canvas and all sounds are synthesised with WebAudio.
 ## Screenshots
 
 The four staged scenes (`?shot=start|fortress|power|win&seed=1`; `?shot=end` stages a
-loss instead) are listed in `shots.json`. Every scene is deterministic: the same
-seed always stages the same frame.
+loss instead) are listed in `shots.json`. The power scene stages a fireball run:
+a flaming ball piercing a line of bricks with capsules falling. Every scene is
+deterministic: the same seed always stages the same frame.
 
 ## Files
 

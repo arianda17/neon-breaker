@@ -24,6 +24,8 @@ export const BALL = {
   maxBonusSpeed: 110,
   slowFactor: 0.62,
   slowSeconds: 9,
+  /** Seconds a caught fireball capsule makes every ball pierce bricks. */
+  fireSeconds: 8,
   maxBalls: 5,
 };
 
@@ -46,10 +48,11 @@ export const POWERUP = {
   fallSpeed: 190,
   /** Chance a broken brick drops a capsule. */
   dropChance: 0.16,
-  /** Weights when a drop happens: M multi-ball, W wide paddle, S slow ball, L extra life. */
-  weights: { M: 34, W: 30, S: 26, L: 10 },
-  label: { M: 'MULTI-BALL', W: 'WIDE PADDLE', S: 'SLOW BALL', L: 'EXTRA LIFE' },
-  color: { M: '#ff2fb3', W: '#22d3ee', S: '#a3e635', L: '#ffd166' },
+  /** Weights when a drop happens: M multi-ball, W wide paddle, S slow ball,
+   *  L extra life, F fireball (pierces bricks for a few seconds). */
+  weights: { M: 30, W: 26, S: 22, L: 8, F: 14 },
+  label: { M: 'MULTI-BALL', W: 'WIDE PADDLE', S: 'SLOW BALL', L: 'EXTRA LIFE', F: 'FIREBALL' },
+  color: { M: '#ff2fb3', W: '#22d3ee', S: '#a3e635', L: '#ffd166', F: '#ff7a18' },
 };
 
 export const LIVES = 3;
@@ -63,6 +66,10 @@ export const BANNER_SECONDS = 1.8;
 
 /** Steel bricks never break: they bounce the ball and shield what is behind them. */
 export const STEEL = { color: '#9aa3b2', edge: '#5b6472', rivet: '#e8ecf4' };
+
+/** A moving row slides side to side as one piece: amplitude in px, angular
+ *  speed in radians per fixed step (a full swing takes ~5 seconds). */
+export const MOVE = { amp: 36, omega: 0.02 };
 
 /** Neon row colours, top row first. */
 export const ROW_COLORS = ['#ff2fb3', '#ff7a18', '#ffd166', '#a3e635', '#22d3ee', '#7c5cff', '#ff5c5c'];
@@ -167,6 +174,8 @@ export const LEVELS = [
   {
     name: 'NEON CORE',
     speed: 595,
+    /** The middle row slides side to side as one piece (see MOVE). */
+    movingRow: 2,
     theme: {
       backdrop: '#0d0212', backdropTop: '#2a0636',
       grid: 'rgba(192, 132, 252, 0.12)', rail: '#c084fc',

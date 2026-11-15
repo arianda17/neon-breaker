@@ -59,9 +59,22 @@ export function stageShot(name, world) {
     stepPilot(world, POWER_SECONDS, pilotDirection);
     world.addBall();
     world.addBall();
+    // The fireball moment: light every ball on fire, send the first one
+    // straight up through the brick field so it pierces a line of bricks,
+    // and drop F and M capsules over the play.
+    world.state.fireTimer = 8;
+    const ball = world.state.balls.find((item) => item.active);
+    if (ball) {
+      ball.x = FIELD.width / 2;
+      ball.y = 520;
+      ball.vx = 60;
+      ball.vy = -520;
+      ball.speed = Math.hypot(ball.vx, ball.vy);
+    }
+    world.spawnPowerup('F', FIELD.width / 2 - 40, 180);
     world.spawnPowerup('M', FIELD.width / 2 + 60, 220);
     world.spawnPowerup('W', FIELD.width / 2 - 180, 150);
-    world.burst(FIELD.width / 2, 300, '#ff2fb3', 26, 340);
+    world.burst(FIELD.width / 2, 300, '#ff7a18', 26, 340);
     world.burst(FIELD.width / 2 - 220, 260, '#22d3ee', 18, 280);
     stepPilot(world, POWER_HOLD_SECONDS, pilotDirection);
     return { screen: SCREEN_PLAY, best: world.state.score };

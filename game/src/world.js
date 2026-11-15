@@ -4,7 +4,7 @@
 // generator the world was built with.
 
 import {
-  BALL, BANNER_SECONDS, BRICK, CLEAR_HOLD, FIELD, LEVELS, LIVES, MAX_LIVES, PADDLE, POWERUP, ROW_COLORS, STEEL,
+  BALL, BANNER_SECONDS, BRICK, CLEAR_HOLD, FIELD, LEVELS, LIVES, MAX_LIVES, MOVE, PADDLE, POWERUP, ROW_COLORS, STEEL,
 } from './config.js';
 import { randomPick, randomRange } from './random.js';
 
@@ -19,7 +19,7 @@ export const EVENT_OVER = 128;
 export const EVENT_LAUNCH = 256;
 export const EVENT_WALL = 512;
 
-const POWERUP_TYPES = ['M', 'W', 'S', 'L'];
+const POWERUP_TYPES = ['M', 'W', 'S', 'L', 'F'];
 
 /** Where a ball will be horizontally when it reaches `targetY`, folding off the walls. */
 export function predictBallX(ball, targetY) {
@@ -58,6 +58,7 @@ export function createWorld(rng) {
     combo: 0,
     speedBonus: 0,
     slowTimer: 0,
+    fireTimer: 0,
     serving: true,
     clearing: 0,
     banner: null,
@@ -99,10 +100,12 @@ export function createWorld(rng) {
     level.pattern.forEach((row, rowIndex) => {
       for (let col = 0; col < row.length; col += 1) {
         const cell = row.charAt(col);
+        const brickX = startX + col * (BRICK.width + BRICK.gapX);
+        const brickY = BRICK.topY + rowIndex * (BRICK.height + BRICK.gapY);
         if (cell === 'S') {
-          state.bricks.push({
-            x: startX + col * (BRICK.width + BRICK.gapX),
-            y: BRICK.topY + rowIndex * (BRICK.height + BRICK.gapY),
+          const steelBrick = {
+            x: brickX,
+            y: brickY,
             w: BRICK.width,
             h: BRICK.height,
             hp: 99,
@@ -110,21 +113,33 @@ export function createWorld(rng) {
             steel: true,
             color: STEEL.color,
             alive: true,
-          });
+          };
+          // A level's moving row slides as one piece (NEON CORE): every brick
+          // in it, steel included, rides the same offset from its home slot.
+          if (level.movingRow === rowIndex) {
+            steelBrick.moving = true;
+            steelBrick.baseX = brickX;
+          }
+          state.bricks.push(steelBrick);
           continue;
         }
         const hp = cell.charCodeAt(0) - 48;
         if (hp < 1 || hp > 3) continue;
-        state.bricks.push({
-          x: startX + col * (BRICK.width + BRICK.gapX),
-          y: BRICK.topY + rowIndex * (BRICK.height + BRICK.gapY),
+        const brick = {
+          x: brickX,
+          y: brickY,
           w: BRICK.width,
           h: BRICK.height,
           hp,
           maxHp: hp,
           color: rows[rowIndex % rows.length],
           alive: true,
-        });
+        };
+        if (level.movingRow === rowIndex) {
+          brick.moving = true;
+          brick.baseX = brickX;
+        }
+        state.bricks.push(brick);
       }
     });
     // Steel never breaks, so it never counts toward clearing the level.
@@ -161,6 +176,7 @@ export function createWorld(rng) {
     state.combo = 0;
     state.speedBonus = 0;
     state.slowTimer = 0;
+    state.fireTimer = 0;
     state.clearing = 0;
     state.banner = null;
     state.won = false;
@@ -225,6 +241,7 @@ export function createWorld(rng) {
     if (type === 'M') addBall();
     else if (type === 'W') state.paddle.wideTimer = PADDLE.wideSeconds;
     else if (type === 'S') state.slowTimer = BALL.slowSeconds;
+    else if (type === 'F') state.fireTimer = BALL.fireSeconds;
     else if (type === 'L') state.lives = Math.min(MAX_LIVES, state.lives + 1);
   }
 
@@ -323,6 +340,13 @@ export function createWorld(rng) {
       const dx = ball.x - closestX;
       const dy = ball.y - closestY;
       if (dx * dx + dy * dy > ball.r * ball.r) continue;
+      // A live fireball ploughs straight through breakable bricks instead of
+      // bouncing: it keeps its velocity and damages every brick it crosses.
+      // Steel still bounces it — steel never breaks.
+      if (state.fireTimer > 0 && !brick.steel) {
+        events |= damageBrick(brick, attract);
+        break;
+      }
       const centreX = brick.x + brick.w / 2;
       const centreY = brick.y + brick.h / 2;
       const overlapX = (brick.w / 2 + ball.r) - Math.abs(ball.x - centreX);
@@ -351,6 +375,12 @@ export function createWorld(rng) {
     state.shake = Math.max(0, state.shake - dt * 1.4);
     if (state.banner && state.banner.timer > 0) state.banner.timer -= dt;
 
+    // A moving row rides one shared sine offset from its home slots, so it
+    // slides as a piece and never leaves the field or overlaps its neighbours.
+    for (const brick of state.bricks) {
+      if (brick.moving) brick.x = brick.baseX + MOVE.amp * Math.sin(state.frame * MOVE.omega);
+    }
+
     for (let index = state.particles.length - 1; index >= 0; index -= 1) {
       const particle = state.particles[index];
       particle.x += particle.vx * dt;
@@ -368,6 +398,7 @@ export function createWorld(rng) {
 
     if (state.paddle.wideTimer > 0) state.paddle.wideTimer -= dt;
     if (state.slowTimer > 0) state.slowTimer -= dt;
+    if (state.fireTimer > 0) state.fireTimer -= dt;
     state.paddle.w = state.paddle.wideTimer > 0 ? PADDLE.wideWidth : PADDLE.width;
     state.paddle.x = Math.max(0, Math.min(FIELD.width - state.paddle.w, state.paddle.x));
 
@@ -429,6 +460,7 @@ export function createWorld(rng) {
       state.shake = 1;
       state.paddle.wideTimer = 0;
       state.slowTimer = 0;
+      state.fireTimer = 0;
       burst(state.paddle.x + state.paddle.w / 2, PADDLE.y, '#ff5c5c', 22, 380);
       events |= EVENT_LIFE_LOST;
       if (state.lives <= 0) {

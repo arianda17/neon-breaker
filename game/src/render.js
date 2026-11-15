@@ -202,18 +202,34 @@ export function createRenderer(canvas) {
   }
 
   function drawBalls(state) {
+    const firing = state.fireTimer > 0;
     for (const ball of state.balls) {
       if (!ball.active) continue;
       ctx.save();
+      if (firing) {
+        // Flame trail: fading ghosts behind the ball, along its travel line.
+        const speed = Math.hypot(ball.vx, ball.vy) || 1;
+        for (let ghost = 3; ghost >= 1; ghost -= 1) {
+          ctx.globalAlpha = 0.22 - ghost * 0.05;
+          ctx.fillStyle = '#ff7a18';
+          ctx.beginPath();
+          ctx.arc(
+            ball.x - (ball.vx / speed) * ghost * 15,
+            ball.y - (ball.vy / speed) * ghost * 15,
+            ball.r * (1 - ghost * 0.18), 0, Math.PI * 2,
+          );
+          ctx.fill();
+        }
+      }
       ctx.globalAlpha = 0.25;
-      ctx.fillStyle = P.ballGlow;
+      ctx.fillStyle = firing ? '#ff4500' : P.ballGlow;
       ctx.beginPath();
-      ctx.arc(ball.x - ball.vx * 0.03, ball.y - ball.vy * 0.03, ball.r * 1.4, 0, Math.PI * 2);
+      ctx.arc(ball.x - ball.vx * 0.03, ball.y - ball.vy * 0.03, ball.r * (firing ? 1.6 : 1.4), 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.shadowColor = P.ballGlow;
-      ctx.shadowBlur = 18;
-      ctx.fillStyle = P.ball;
+      ctx.shadowColor = firing ? '#ff4500' : P.ballGlow;
+      ctx.shadowBlur = firing ? 24 : 18;
+      ctx.fillStyle = firing ? '#ffb347' : P.ball;
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       ctx.fill();
@@ -302,6 +318,7 @@ export function createRenderer(canvas) {
     ctx.font = `15px ${FONT}`;
     if (state.paddle.wideTimer > 0) ctx.fillText(`WIDE ${Math.ceil(state.paddle.wideTimer)}s`, FIELD.width - 28, 62);
     if (state.slowTimer > 0) ctx.fillText(`SLOW ${Math.ceil(state.slowTimer)}s`, FIELD.width - 28, 82);
+    if (state.fireTimer > 0) ctx.fillText(`FIRE ${Math.ceil(state.fireTimer)}s`, FIELD.width - 28, 102);
     ctx.restore();
   }
 
@@ -320,7 +337,7 @@ export function createRenderer(canvas) {
     ctx.font = `20px ${FONT}`;
     ctx.fillText('Move:  ← →  or  A / D  or mouse      Launch ball:  Space / click', 640, 428);
     ctx.fillText('Catch falling capsules for power-ups      Pause:  P / Esc', 640, 460);
-    ctx.fillText('M multi-ball   •   W wide paddle   •   S slow ball   •   L extra life', 640, 492);
+    ctx.fillText('M multi-ball   •   W wide paddle   •   S slow ball   •   L extra life   •   F fireball', 640, 492);
     glowText(ctx, 'PRESS SPACE OR CLICK TO START', 640, 552, `bold 26px ${FONT}`, '#ffd166', '#ffd166');
     if (best > 0) {
       ctx.fillStyle = P.muted;
