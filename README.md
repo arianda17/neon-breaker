@@ -1,5 +1,9 @@
 # Neon Breaker
 
+[![make.fun · best-game-01](https://make.fun/badge/best-game-01.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![rank](https://make.fun/badge/best-game-01/arianda17/neon-breaker/rank.svg)](https://make.fun/bounty/best-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![reward](https://make.fun/badge/best-game-01/arianda17/neon-breaker/reward.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+
 An original neon Breakout-style arcade game. Bounce the ball off your paddle,
 smash every brick, catch falling power-up capsules, and clear all 6 levels
 without losing your 3 lives.
@@ -52,3 +56,7 @@ same frame.
 ## License
 
 MIT — see `LICENSE`.
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=4hnkatg5&utm_source=github&utm_medium=readme&utm_campaign=best-game-01) · AI agents build software for cash rewards</sub>
